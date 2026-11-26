@@ -1,43 +1,43 @@
-# 🔥 HuggingFace Spaces Keepalive
+# HuggingFace Spaces Keepalive
 
-Automated GitHub Actions workflow to keep HuggingFace Spaces alive by pinging them every 6 hours.
+GitHub Actions workflow that keeps **every** Hugging Face Space owned by `Faruna01` awake.
 
-## 🎯 Purpose
+## How it works
 
-HuggingFace Spaces on free tier sleep after 48 hours of inactivity. This workflow prevents that by automatically visiting each Space URL every 6 hours.
+Every 4 hours the workflow:
 
-## 📋 Monitored Spaces
+1. Lists all Spaces for the user through the Hugging Face API, so new Spaces are picked up automatically.
+2. Checks each Space's status. If one is **sleeping**, it restarts it through the API.
+3. Sends a request to each Space's `*.hf.space` URL to register activity.
+4. Re-enables itself via the GitHub API, so GitHub never turns the schedule off for "60 days of inactivity" (that's what broke the previous version).
 
-- 🛡️ [Red-Teaming LLMs](https://faruna01-red-teaming-llms.hf.space)
-- 🌐 [Igala NMT Translator](https://faruna01-igala-nmt-translator.hf.space)
-- 🔬 [Igala Interpretability](https://faruna01-igala-mbert-interpretability.hf.space)
-- ⚡ [Igala GPT from Scratch](https://faruna01-igala-gpt-from-scratch.hf.space)
-- 🌍 [Igala Dataset Explorer](https://faruna01-igala-streamlit-app-02.hf.space)
+A run **fails** (and GitHub emails you) if a Space can't be woken or is in an error state (build/runtime error), so you know something needs fixing.
 
-## ⏰ Schedule
+## One-time setup (required)
 
-- **Automatic**: Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
-- **Manual**: Can be triggered manually from GitHub Actions tab
+1. Create a Hugging Face token with **Write** access: https://huggingface.co/settings/tokens
+2. In this repo: **Settings → Secrets and variables → Actions → New repository secret**
+   - Name: `HF_TOKEN`
+   - Value: the token
+3. Go to **Actions → Keep HuggingFace Spaces Alive → Run workflow** to test it.
 
-## 🚀 How It Works
+Without `HF_TOKEN` the workflow can only ping; it cannot wake Spaces that are already asleep.
 
-1. GitHub Actions runs on a schedule
-2. Python script sends HTTP GET requests to each Space
-3. Logs success/failure for each Space
-4. Workflow fails if any Space is down (for monitoring)
+## Optional settings (Actions → Variables)
 
-## 📊 Monitoring
+| Variable       | Purpose                                                   |
+|----------------|-----------------------------------------------------------|
+| `HF_USERNAME`  | Different HF user/org (default `Faruna01`)                |
+| `EXTRA_SPACES` | Comma-separated extra Space ids, e.g. `org/space-name`    |
+| `SKIP_SPACES`  | Comma-separated Space ids to leave alone                  |
 
-Check workflow runs at: [Actions Tab](https://github.com/farunawebservices/hf-spaces-keepalive/actions)
-
-## 🛠️ Local Testing
+## Local run
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
+HF_TOKEN=hf_xxx python keepalive.py
+```
 
-# Run keepalive script
-python keepalive.py
+## License
 
-📄 License
-MIT License
+MIT

@@ -2,29 +2,44 @@ name: Keep HuggingFace Spaces Alive
 
 on:
   schedule:
-    # Run every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
-    - cron: '0 */6 * * *'
-  
-  # Allow manual trigger
+    # Every 4 hours (minute 17 avoids GitHub's busy top-of-hour queue)
+    - cron: '17 */4 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write   # lets the job re-enable itself so GitHub never disables it for inactivity
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
 
 jobs:
   ping-spaces:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      
-      - name: Ping HuggingFace Spaces
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Wake and ping all Spaces
+        env:
+          HF_USERNAME: ${{ vars.HF_USERNAME || 'Faruna01' }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          EXTRA_SPACES: ${{ vars.EXTRA_SPACES }}
+          SKIP_SPACES: ${{ vars.SKIP_SPACES }}
         run: python keepalive.py
+
+      # GitHub disables scheduled workflows after 60 days without repo activity.
+      # Re-enabling the workflow through the API resets that timer, with no commits needed.
+      - name: Prevent GitHub from disabling this schedule
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"
