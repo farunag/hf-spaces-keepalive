@@ -15,6 +15,9 @@ Environment variables:
   EXTRA_SPACES    Optional comma-separated extra Space ids, e.g. "someorg/some-space"
   SKIP_SPACES     Optional comma-separated Space ids to ignore
   WAKE_PAUSED     "true" to also restart Spaces you paused manually (default: true)
+  KEEP_SPACES     Optional comma-separated Space ids. If set, ONLY these are woken up
+                  (checked first); other Spaces are just pinged and never fail the run.
+                  Useful because free accounts can only run a few CPU Spaces at once.
 """
 
 import os
@@ -30,6 +33,8 @@ USERNAME = os.environ.get("HF_USERNAME", "Faruna01").strip()
 TOKEN = os.environ.get("HF_TOKEN", "").strip() or None
 EXTRA = [s.strip() for s in os.environ.get("EXTRA_SPACES", "").split(",") if s.strip()]
 SKIP = {s.strip().lower() for s in os.environ.get("SKIP_SPACES", "").split(",") if s.strip()}
+KEEP = [s.strip() for s in os.environ.get("KEEP_SPACES", "").split(",") if s.strip()]
+KEEP_LOWER = {s.lower() for s in KEEP}
 WAKE_PAUSED = os.environ.get("WAKE_PAUSED", "true").lower() == "true"
 
 WAKE_STAGES = {"SLEEPING"} | ({"PAUSED"} if WAKE_PAUSED else set())
@@ -63,7 +68,16 @@ def discover() -> list[str]:
     for extra in EXTRA:
         if extra not in ids:
             ids.append(extra)
-    return [i for i in ids if i.lower() not in SKIP]
+    for k in KEEP:
+        if k.lower() not in {i.lower() for i in ids}:
+            ids.append(k)
+    ids = [i for i in ids if i.lower() not in SKIP]
+    # Priority Spaces first, so they get the free CPU slots
+    return sorted(ids, key=lambda i: i.lower() not in KEEP_LOWER)
+
+
+def is_priority(sid: str) -> bool:
+    return not KEEP or sid.lower() in KEEP_LOWER
 
 
 def main() -> int:
@@ -88,7 +102,10 @@ def main() -> int:
             continue
 
         action = ""
-        if stage in WAKE_STAGES:
+        priority = is_priority(sid)
+        if stage in WAKE_STAGES and not priority:
+            action = " -> not in KEEP_SPACES, left asleep"
+        elif stage in WAKE_STAGES:
             if TOKEN:
                 try:
                     api.restart_space(sid)
@@ -101,7 +118,8 @@ def main() -> int:
                 problems.append(sid)
         elif stage in ERROR_STAGES:
             action = " -> needs a code/config fix on Hugging Face"
-            problems.append(sid)
+            if priority:
+                problems.append(sid)
 
         url = space_url(sid, runtime)
         result = ping(url)
