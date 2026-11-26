@@ -34,6 +34,9 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           EXTRA_SPACES: ${{ vars.EXTRA_SPACES }}
           SKIP_SPACES: ${{ vars.SKIP_SPACES }}
+          # Spaces to always keep awake (free account fits ~4 running CPU Spaces).
+          # Override without editing code via Settings -> Secrets and variables -> Actions -> Variables.
+          KEEP_SPACES: ${{ vars.KEEP_SPACES || 'Faruna01/igala-streamlit-app-02,Faruna01/igala-nmt-translator,Faruna01/lsr-dashboard,Faruna01/persona-collapse' }}
         run: python keepalive.py
 
       # GitHub disables scheduled workflows after 60 days without repo activity.

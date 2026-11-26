@@ -30,6 +30,7 @@ Without `HF_TOKEN` the workflow can only ping; it cannot wake Spaces that are al
 | `HF_USERNAME`  | Different HF user/org (default `Faruna01`)                |
 | `EXTRA_SPACES` | Comma-separated extra Space ids, e.g. `org/space-name`    |
 | `SKIP_SPACES`  | Comma-separated Space ids to leave alone                  |
+| `KEEP_SPACES`  | Only these Spaces are woken (default: igala-streamlit-app-02, igala-nmt-translator, lsr-dashboard, persona-collapse). Free accounts can only run ~4 CPU Spaces at once. |
 
 ## Local run
 
